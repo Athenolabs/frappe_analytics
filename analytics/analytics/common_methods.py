@@ -9,6 +9,18 @@ import json
 from .doctype_template import get_change_doctype_json
 
 
+def delete_history(doc, method):
+    if doc.doctype is not "Doc History Temp":
+        frappe.msgprint("not doc history temp")
+        history_doctype = get_analytics_doctype_name(doc.doctype)
+        history_list = frappe.client.get_list(
+            history_doctype, filters={"changed_doc_name": doc.name}
+            )
+    if history_list:
+        for item in history_list:
+            frappe.delete_doc(history_doctype, item['name'])
+
+
 def dump_pre_save_doc(doc, method):
     if is_versionable(doc):
         doc_dict = doc.as_dict()
