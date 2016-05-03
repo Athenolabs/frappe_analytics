@@ -73,6 +73,8 @@ app_include_js = ["/assets/js/analytics.js"]
 doc_events = {
     "*": {
         "before_save": "analytics.analytics.common_methods.dump_pre_save_doc",
+        "before_submit": "analytics.analytics.common_methods.dump_pre_save_doc",
+        "before_update_after_submit": "analytics.analytics.common_methods.dump_pre_save_doc",
     },
     "Doc History Temp": {
         "after_insert": "analytics.analytics.common_methods.sort_temp_entries"
