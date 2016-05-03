@@ -75,11 +75,17 @@ def check_if_module_is_versionable(doc):
 
 
 def log_field_changes(new_dict, old_dict):
+    frappe.msgprint("logging")
     ignored_fields = ["modified", "creation", "__onload"]
+
     for k, v in old_dict.iteritems():
         if type(new_dict[k]) != type(old_dict[k]):
-            new_dict[k] = str(new_dict[k])
-            old_dict[k] = str(old_dict[k])
+            try:
+                new_dict[k] = str(new_dict[k])
+                old_dict[k] = str(old_dict[k])
+            except:
+                frappe.msgprint("Did not track field history for {}".format(k))
+        print(old_dict[k], new_dict[k])
         if new_dict[k] != old_dict[k] and k not in ignored_fields:
                 doc = {
                     "doctype": get_analytics_doctype_name(old_dict['doctype']),
@@ -100,6 +106,28 @@ def log_field_changes(new_dict, old_dict):
                     for idx, entry in enumerate(doc['old_value']):
                         log_field_changes(doc['new_value'][idx], entry)
 
+
+def insert_new_doc(dictionary):
+    ignored_fields = ["modified", "creation", "__onload"]
+    for k, v in dictionary.iteritems():
+        if k not in ignored_fields:
+            doc = {
+                "doctype": get_analytics_doctype_name(dictionary['doctype']),
+                "changed_doctype": dictionary['doctype'],
+                "changed_doc_name": dictionary['name'],
+                "fieldname": k,
+                "old_value": None,
+                "new_value": dictionary[k],
+                "modified_by_user": dictionary["modified_by"],
+                "date": dictionary["modified"]
+                }
+            if type(doc['new_value']) is not list:
+                make_doctype_maybe(doc['doctype'])
+                history = Document(doc)
+                history.insert()
+            else:
+                for idx, entry in enumerate(doc['new_value']):
+                    insert_new_doc(doc['new_value'][idx])
 
 def sort_changed_field(doc):
     """ Gets changed field from doc hook, sorts into correct table, and
@@ -143,17 +171,15 @@ def sort_temp_entries(doc, method):
     for name in changed_fields:
         doc = frappe.get_doc("Doc History Temp", name['name'])
     	old_dict = ast.literal_eval(doc.json_blob)
-	try:
-	    new_dict = frappe.client.get(old_dict['doctype'], old_dict['name'])
-#        for k, v in old_dict.iteritems():
-#            print(k, v)
-#        for k, vi in new_dict.iteritems():
-#            print(k, v)
-        # WHY DOES THIS HAVE TO BE BACKWARDS
+        try:
+            new_dict = frappe.client.get(old_dict['doctype'], old_dict['name'])
+            # WHY DOES THIS HAVE TO BE BACKWARDS
             log_field_changes(old_dict, new_dict)
             doc.delete()
-	except: # new doc, does not exist yet
-	    pass
+        except:
+            insert_new_doc(old_dict)
+            doc.delete()
+
 
 def del_items(dictionary):
     if "items" in dictionary.keys():

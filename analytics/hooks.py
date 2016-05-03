@@ -16,7 +16,7 @@ app_license = "MIT"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/analytics/css/analytics.css"
-# app_include_js = "/assets/analytics/js/analytics.js"
+# app_include_js = ["/assets/js/analytics.js"]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/analytics/css/analytics.css"
@@ -73,6 +73,8 @@ app_license = "MIT"
 doc_events = {
     "*": {
         "before_save": "analytics.analytics.common_methods.dump_pre_save_doc",
+        "before_submit": "analytics.analytics.common_methods.dump_pre_save_doc",
+        "before_update_after_submit": "analytics.analytics.common_methods.dump_pre_save_doc",
     },
     "Doc History Temp": {
         "after_insert": "analytics.analytics.common_methods.sort_temp_entries"
