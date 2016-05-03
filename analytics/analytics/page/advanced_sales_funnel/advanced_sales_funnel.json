@@ -1,0 +1,22 @@
+{
+ "content": null,
+ "creation": "2016-05-02 17:26:03.720053",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2016-05-02 17:26:03.720053",
+ "modified_by": "Administrator",
+ "module": "Analytics",
+ "name": "advanced-sales-funne",
+ "owner": "Administrator",
+ "page_name": "advanced-sales-funne",
+ "roles": [
+  {
+   "role": "All"
+  }
+ ],
+ "script": true,
+ "standard": "Yes",
+ "style": null,
+ "title": "Advanced Sales Funnel"
+}

@@ -1,0 +1,26 @@
+<!-- Jinja2 -->
+<canvas id="myChart" width="400" height="200"></canvas>
+
+<script>
+var ctx = document.getElementById("myChart");
+var myChart = new Chart(ctx, {
+  type: "bar",
+  data: {
+    labels: [],
+    datasets: {{ dataset }}
+  },
+  options: {
+    scales: {
+      xAxes: [{
+        stacked: true
+      }],
+      yAxes: [{
+        stacked: true,
+        ticks: {
+          beginAtZero: true
+        }
+      }]
+    }
+  }
+});
+</script>
