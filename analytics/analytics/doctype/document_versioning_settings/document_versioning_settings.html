@@ -1,5 +1,5 @@
 <!-- jinja -->
-<div class="row" align="center">
+<div class="row" id="module-row" align="center">
   <br>
   Select modules to store field history.
   You can disable specific documents in a selected module from Customize Form.
@@ -9,7 +9,7 @@
 
     <div class="form" id="module-list" align="left">
       {% for module in modules %}
-        <div class="col col-sm-3">
+        <div class="col col-lg-4">
           <br>
             {% if module.value %}
               <input class="select-module" id="{{ module.name }}" type="checkbox" checked=true>
@@ -21,6 +21,8 @@
           </br>
         </div>
       {% endfor %}
+      <br></br>
+      <br></br>
     </div>
   </div>
 </div>

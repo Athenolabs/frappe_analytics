@@ -12,6 +12,7 @@ import json
 class DocumentVersioningSettings(Document):
 	pass
 
+
 @frappe.whitelist()
 def get_modules():
 	modules = frappe.client.get_list("Module Def", limit_page_length=None)
@@ -29,6 +30,7 @@ def get_modules():
 	return frappe.render_template(
         'analytics/analytics/doctype/document_versioning_settings/document_versioning_settings.html',
 		{'modules': modules})
+
 
 @frappe.whitelist()
 def save_modules(modules):
