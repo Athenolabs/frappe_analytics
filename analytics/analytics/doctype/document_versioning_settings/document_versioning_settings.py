@@ -19,7 +19,10 @@ def get_modules():
 	if settings_doc['stored_modules']:
 		settings = json.loads(settings_doc['stored_modules'])
 		for module in modules:
-			module['value'] = settings[module['name']]
+			try:
+				module['value'] = settings[module['name']]
+			except KeyError:
+				module['value'] = False
 	else:
 		for module in modules:
 			module['value'] = False
