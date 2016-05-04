@@ -15,13 +15,12 @@ this.AdvancedSalesFunnel = Class.extend({
 		// 0 setTimeout hack - this gives time for canvas to get width and height
 		setTimeout(function() {
 			me.setup(wrapper);
-			me.get_data(page);
-		}, 0);
+			//me.get_data(page);
+		}, 100);
 	},
 
 	setup: function(wrapper) {
 		var me = this;
-
 		this.elements = {
 			layout: $(wrapper).find(".layout-main"),
 			from_date: wrapper.page.add_date(__("From Date")),
@@ -37,14 +36,19 @@ this.AdvancedSalesFunnel = Class.extend({
 					]
 				}
 			),
+			sales_person: wrapper.page.add_field({
+				fieldtype:"Select", label:__("Sales Person"), fieldname: "sales_person",
+				default:null, options: []
+			}),
 			refresh_btn: wrapper.page.set_primary_action(__("Reload"),
-				function() {  }, "icon-refresh"),
+				function() { me.get_data(); }, "icon-refresh"),
 		};
-
+		me.get_sales_people();
 		this.options = {
 			from_date: frappe.datetime.add_months(frappe.datetime.get_today(), -1),
 			to_date: frappe.datetime.get_today(),
-			date_range: "Weekly"
+			date_range: "Weekly",
+			sales_person: null
 		};
 
 		$.each(this.options, function(k, v) {
@@ -62,7 +66,23 @@ this.AdvancedSalesFunnel = Class.extend({
 			me.get_data();
 		});
 	},
-
+	get_sales_people: function() {
+		var me = this;
+		frappe.call({
+			method: "frappe.client.get_list",
+			args: {
+				"doctype": "Sales Person"
+			},
+			callback: function(r) {
+				var sales_people = []
+				r.message.forEach(function(obj){
+					sales_people.push(obj.name)
+				})
+				console.log(me)
+				me.elements.sales_people.df.options = sales_people
+			}
+		})
+	},
 	get_data: function(page, btn) {
 		var me = this;
 		var sel_range = $(".input-with-feedback option:selected").text();
@@ -78,8 +98,6 @@ this.AdvancedSalesFunnel = Class.extend({
 				if(!r.exc) {
 					var funnel_data = r.message.dataset;
 					var columns = r.message.columns;
-//					$(".layout-main-section").append("<canvas id='myChart'></canvas>");
-
 					if($("#myChart").length == 0){
 						$(".layout-main-section").append("<canvas id='myChart'></canvas>");
 					}else{

@@ -7,16 +7,16 @@
  "modified": "2016-05-02 17:26:03.720053",
  "modified_by": "Administrator",
  "module": "Analytics",
- "name": "advanced-sales-funne",
+ "name": "advanced-sales-funnel",
  "owner": "Administrator",
- "page_name": "advanced-sales-funne",
+ "page_name": "advanced-sales-funnel",
  "roles": [
   {
    "role": "All"
   }
  ],
  "script": true,
- "standard": "Yes",
+ "standard": "No",
  "style": null,
  "title": "Advanced Sales Funnel"
 }
