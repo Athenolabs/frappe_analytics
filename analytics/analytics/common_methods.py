@@ -68,7 +68,7 @@ def check_if_module_is_versionable(doc):
 		settings = json.loads(get(
 			"Document Versioning Settings"
 			)['stored_modules'])
-	except TypeError:
+	except TypeError, KeyError:
 		settings = {}
 		settings[module] = False
 	return settings[module]
