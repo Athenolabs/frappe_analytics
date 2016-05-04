@@ -31,7 +31,7 @@ frappe.get_doctype_list = function(page) {
 		args: {
 		},
 		callback: function(r) {
-			$(".empty-section").replaceWith(r.message);
+			$(".form-layout").replaceWith(r.message);
 		}
 	});
 }
