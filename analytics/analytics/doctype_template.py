@@ -195,7 +195,27 @@ def get_change_doctype_json(doctype):
            "share": 1,
            "submit": 0,
            "write": 1
-          }
+          },
+          {
+           "amend": 0,
+           "apply_user_permissions": 0,
+           "cancel": 0,
+           "create": 1,
+           "delete": 0,
+           "email": 1,
+           "export": 1,
+           "if_owner": 0,
+           "import": 0,
+           "permlevel": 0,
+           "print": 1,
+           "read": 1,
+           "report": 1,
+           "role": "All",
+           "set_user_permissions": 0,
+           "share": 1,
+           "submit": 0,
+           "write": 0
+        }
          ],
          "read_only": 0,
          "read_only_onload": 0,
