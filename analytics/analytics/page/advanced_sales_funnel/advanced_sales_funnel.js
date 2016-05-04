@@ -28,7 +28,7 @@ this.AdvancedSalesFunnel = Class.extend({
 			to_date: wrapper.page.add_date(__("To Date")),
 			date_range: wrapper.page.add_field(
 				{fieldtype:"Select", label: __("Range"), fieldname: "date_range",
-				  id:"Weekly",
+				  default:"Weekly",
 					options:[{label: __("Daily"), value: "Daily"},
 					{label: __("Weekly"), value: "Weekly"},
 					{label: __("Monthly"), value: "Monthly"},
@@ -38,7 +38,7 @@ this.AdvancedSalesFunnel = Class.extend({
 				}
 			),
 			refresh_btn: wrapper.page.set_primary_action(__("Reload"),
-				function() { me.get_data(); }, "icon-refresh"),
+				function() {  }, "icon-refresh"),
 		};
 
 		this.options = {
@@ -52,7 +52,6 @@ this.AdvancedSalesFunnel = Class.extend({
 				me.elements[k].val(frappe.datetime.str_to_user(v));
 				me.elements[k].on("change", function() {
 					me.options[k] = frappe.datetime.user_to_str($(this).val());
-					me.get_data();
 				});
 			}catch(err){
 			}
@@ -67,9 +66,6 @@ this.AdvancedSalesFunnel = Class.extend({
 	get_data: function(page, btn) {
 		var me = this;
 		var sel_range = $(".input-with-feedback option:selected").text();
-		if (!sel_range) {
-			sel_range = "Weekly"
-		};
 		frappe.call({
 			method: "analytics.analytics.page.advanced_sales_funnel.advanced_sales_funnel.get_funnel_data",
 			args: {
@@ -82,7 +78,14 @@ this.AdvancedSalesFunnel = Class.extend({
 				if(!r.exc) {
 					var funnel_data = r.message.dataset;
 					var columns = r.message.columns;
-					$(".layout-main-section").append("<canvas id='myChart'></canvas>");
+//					$(".layout-main-section").append("<canvas id='myChart'></canvas>");
+
+					if($("#myChart").length == 0){
+						$(".layout-main-section").append("<canvas id='myChart'></canvas>");
+					}else{
+						$("#myChart").remove()
+						$(".layout-main-section").append("<canvas id='myChart'></canvas>");
+					};
 					var ctx = $("#myChart");
 					var myChart = new Chart(ctx, {
 					  type: "bar",

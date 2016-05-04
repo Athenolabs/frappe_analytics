@@ -38,8 +38,9 @@ def get_funnel_data(from_date, to_date, date_range):
 def setup_dates(from_date, to_date, date_range):
     start_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date()
     end_date = datetime.datetime.strptime(to_date, "%Y-%m-%d").date()
+    end_date += datetime.timedelta(days=1)
     time_period = (end_date - start_date).days
-    columns = time_period / int(date_range + 1)
+    columns = time_period / (date_range + 1)
     ret = []
     for column in range(columns):
         next_date = start_date + datetime.timedelta(days=int(date_range))
@@ -55,11 +56,12 @@ def setup_dates(from_date, to_date, date_range):
 def get_queries(dates, value):
     sql_query = []
     for d in dates:
-        sql_query.append(frappe.db.sql("""select count(*) from `tab{0}`
-        where (date(`modified`) between %s and %s)
-        and status = "{1}"
-        """.format(value[0], value[1]), (d['start_date'], d['end_date']))[0][0])
-
+        #sql_query.append(frappe.db.sql("""select count(*) from `tabLead Field History`
+        #where (date(`date`) between %s and %s) and `new_value` = "{1}"
+        #order by `date` desc
+        #""".format(value[0], value[1]), (d['start_date'], d['end_date']))[0][0])
+        # Test data
+        sql_query.append(random.randint(0, 25))
     return sql_query
 
 
