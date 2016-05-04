@@ -75,7 +75,6 @@ def check_if_module_is_versionable(doc):
 
 
 def log_field_changes(new_dict, old_dict):
-    frappe.msgprint("logging")
     ignored_fields = ["modified", "creation", "__onload"]
 
     for k, v in old_dict.iteritems():
@@ -157,8 +156,12 @@ def get_analytics_doctype_name(doctype):
 def make_doctype_maybe(doctype_name):
     """ Makes doctype for Analytics app, if necessary"""
     try:
-        dt = frappe.client.get("DocType", doctype_name)
-    except frappe.DoesNotExistError:
+        dt = frappe.get_list(
+            "DocType",
+            filters={"name": doctype_name},
+            ignore_permissions=True
+            )[0]
+    except:
         dt = DocType(get_change_doctype_json(doctype_name))
         dt.insert(ignore_permissions=True)
 
