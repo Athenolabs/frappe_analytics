@@ -62,16 +62,17 @@ def is_versionable(doc):
 
 
 def check_if_module_is_versionable(doc):
-	from frappe.client import get
-	module = frappe.model.meta.get_meta(doc.doctype).as_dict()['module']
-	try:
-		settings = json.loads(get(
-			"Document Versioning Settings"
-			)['stored_modules'])
-	except TypeError, KeyError:
-		settings = {}
-		settings[module] = False
-	return settings[module]
+    module = doc.meta.module
+    try:
+        settings = json.loads(
+            frappe.get_list(
+                "Document Versioning Settings", fields=["stored_modules"],
+                ignore_permissions=True)
+            )
+    except:
+        settings = {}
+        settings[module] = False
+    return settings[module]
 
 
 def log_field_changes(new_dict, old_dict):
