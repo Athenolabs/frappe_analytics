@@ -65,11 +65,10 @@ def check_if_module_is_versionable(doc):
     module = doc.meta.module
     try:
         settings = json.loads(
-            frappe.get_list(
-                "Document Versioning Settings", fields=["stored_modules"],
-                ignore_permissions=True)
-            )
-    except:
+            frappe.model.document.get_doc(
+                "Document Versioning Settings", "Document Versioning Settings"
+            ).as_dict()['stored_modules'])
+    except KeyError:
         settings = {}
         settings[module] = False
     return settings[module]
