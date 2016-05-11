@@ -18,7 +18,22 @@ this.AdvancedSalesFunnel = Class.extend({
 			//me.get_data(page);
 		}, 100);
 	},
-
+	get_sales_people: function() {
+		var me = this;
+		frappe.call({
+			method: "frappe.client.get_list",
+			args: {
+				"doctype": "Sales Person"
+			},
+			callback: function(r) {
+				var sales_people = []
+				r.message.forEach(function(obj){
+					sales_people.push(obj.name)
+				})
+				return sales_people
+			}
+		})
+	},
 	setup: function(wrapper) {
 		var me = this;
 		this.elements = {
@@ -36,21 +51,18 @@ this.AdvancedSalesFunnel = Class.extend({
 					]
 				}
 			),
-			sales_person: wrapper.page.add_field({
-				fieldtype:"Select", label:__("Sales Person"), fieldname: "sales_person",
-				default:null, options: []
-			}),
+//			sales_person: wrapper.page.add_field({
+//				fieldtype:"Select", label:__("Sales Person"), fieldname: "sales_person"
+//			}),
 			refresh_btn: wrapper.page.set_primary_action(__("Reload"),
 				function() { me.get_data(); }, "icon-refresh"),
 		};
-		me.get_sales_people();
 		this.options = {
 			from_date: frappe.datetime.add_months(frappe.datetime.get_today(), -1),
 			to_date: frappe.datetime.get_today(),
 			date_range: "Weekly",
-			sales_person: null
-		};
 
+		};
 		$.each(this.options, function(k, v) {
 			try{
 				me.elements[k].val(frappe.datetime.str_to_user(v));
@@ -65,23 +77,6 @@ this.AdvancedSalesFunnel = Class.extend({
 		this.elements.refresh_btn.on("click", function() {
 			me.get_data();
 		});
-	},
-	get_sales_people: function() {
-		var me = this;
-		frappe.call({
-			method: "frappe.client.get_list",
-			args: {
-				"doctype": "Sales Person"
-			},
-			callback: function(r) {
-				var sales_people = []
-				r.message.forEach(function(obj){
-					sales_people.push(obj.name)
-				})
-				console.log(me)
-				me.elements.sales_people.df.options = sales_people
-			}
-		})
 	},
 	get_data: function(page, btn) {
 		var me = this;
