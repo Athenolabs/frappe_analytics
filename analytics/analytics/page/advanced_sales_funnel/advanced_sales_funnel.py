@@ -2,6 +2,8 @@
 # License: GNU General Public License v3. See license.txt
 
 from __future__ import unicode_literals
+from collections import OrderedDict
+
 import frappe
 import random
 import datetime
@@ -12,10 +14,19 @@ from frappe import _
 
 @frappe.whitelist()
 def get_funnel_data(from_date, to_date, date_range):
-    rows = get_funnel_setup_info()
+    funnel_stages = get_funnel_setup_info()
     ret = []
-    date_range = date_range_to_int(date_range)
-    for key, value in rows.iteritems():
+    x_axis_interval = date_range_to_int(date_range)
+    dates = setup_dates(from_date, to_date, date_range)
+
+    # key is doctype, value is status - is this the best way?
+    # could restructure and pop dates in...?
+    # ALSO need to split into stages by doctype...can't do sequence with
+    # mult doctypes
+    doctypes = OrderedDict.fromkeys(funnel_stages).keys()
+    print(doctypes)
+    for key, value in funnel_stages.iteritems():
+
         row_name = str(value[0]) + " - " + str(value[1])
         dates = setup_dates(from_date, to_date, date_range)
         queries = get_queries(dates, value)
@@ -63,6 +74,10 @@ def get_queries(dates, value):
         # Test data
         sql_query.append(random.randint(0, 25))
     return sql_query
+
+
+def get_data(doctype, status, start_date, dates):
+    pass #$status_info = {name, 0 for }
 
 
 def get_funnel_setup_info():
