@@ -93,7 +93,11 @@ def get_data(stages, start_date, dates):
     for date in dates:
         next_set = get_changes(doctype, get_blank_stage_template(stages), date)
         for key, value in next_set.iteritems():
-            stage_history[key].append(stage_history[key][-1] + next_set[key])
+            next_value = stage_history[key][-1] + next_set[key]
+            if next_value >= 0:
+                stage_history[key].append(next_value)
+            else:
+                stage_history[key].append(0)
 
     # need to pop initial data from set
     for key, value in stage_history.iteritems():
@@ -133,8 +137,7 @@ def get_changes(doctype, stage_template, date):
             print(" to new value "),
             print(entry['new_value'])
             try:
-                if stage_template[entry['old_value']] > 0:
-                    stage_template[entry['old_value']] -= 1
+                stage_template[entry['old_value']] -= 1
             except KeyError:
                 pass
             try:
@@ -155,7 +158,6 @@ def get_changes(doctype, stage_template, date):
                 stage_template[entry['status']] += 1
             except KeyError:
                 pass
-    print(stage_template)
     return stage_template
 
 

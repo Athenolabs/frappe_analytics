@@ -76,7 +76,6 @@ def check_if_module_is_versionable(doc):
 
 def log_field_changes(new_dict, old_dict):
     ignored_fields = ["modified", "creation", "__onload"]
-
     for k, v in old_dict.iteritems():
         if type(new_dict[k]) != type(old_dict[k]):
             try:
@@ -84,7 +83,6 @@ def log_field_changes(new_dict, old_dict):
                 old_dict[k] = str(old_dict[k])
             except:
                 frappe.msgprint("Did not track field history for {}".format(k))
-        print(old_dict[k], new_dict[k])
         if new_dict[k] != old_dict[k] and k not in ignored_fields:
                 doc = {
                     "doctype": get_analytics_doctype_name(old_dict['doctype']),
