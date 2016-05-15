@@ -15,7 +15,7 @@ this.AdvancedSalesFunnel = Class.extend({
 		// 0 setTimeout hack - this gives time for canvas to get width and height
 		setTimeout(function() {
 			me.setup(wrapper);
-			//me.get_data(page);
+			me.get_data(page);
 		}, 100);
 	},
 	get_sales_people: function() {
@@ -49,8 +49,17 @@ this.AdvancedSalesFunnel = Class.extend({
 					{label: __("Quarterly"), value: "Quarterly"},
 					{label: __("Yearly"), value: "Yearly"}
 					]
-				}
+				}),
+			leads: wrapper.page.add_field(
+				{fieldtype: "Check", label: __("Leads"), "default": true, fieldname: "leads"}
 			),
+			opportunities: wrapper.page.add_field(
+				{fieldtype: "Check", label: __("Opportunities"), "default": true}
+			),
+			quotations: wrapper.page.add_field(
+				{fieldtype: "Check", label: __("Quotations"), "default": true}
+			),
+
 //			sales_person: wrapper.page.add_field({
 //				fieldtype:"Select", label:__("Sales Person"), fieldname: "sales_person"
 //			}),
@@ -61,7 +70,9 @@ this.AdvancedSalesFunnel = Class.extend({
 			from_date: frappe.datetime.add_months(frappe.datetime.get_today(), -1),
 			to_date: frappe.datetime.get_today(),
 			date_range: "Weekly",
-
+			leads: true,
+			opportunities: true,
+			quotations: true
 		};
 		$.each(this.options, function(k, v) {
 			try{
@@ -72,7 +83,6 @@ this.AdvancedSalesFunnel = Class.extend({
 			}catch(err){
 			}
 		});
-
 		// bind refresh
 		this.elements.refresh_btn.on("click", function() {
 			me.get_data();
@@ -86,7 +96,10 @@ this.AdvancedSalesFunnel = Class.extend({
 			args: {
 				from_date: me.options.from_date,
 				to_date: me.options.to_date,
-				date_range: sel_range
+				date_range: sel_range,
+				leads: $(me.elements.leads.get_value()).length,
+				opportunities: $(me.elements.opportunities.get_value()).length,
+				quotations: $(me.elements.quotations.get_value()).length
 			},
 			btn: btn,
 			callback: function(r) {
