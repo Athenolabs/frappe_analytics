@@ -23,34 +23,32 @@ def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
     # could restructure and pop dates in...?
     # ALSO need to split into stages by doctype...can't do sequence with
     # mult doctypes
-    print(leads, opportunities, quotations)
     if leads == '1':
         lead_stages = {k:v for k, v in funnel_stages.iteritems()
                        if v[0] == "Lead"}
         print(lead_stages)
         if lead_stages:
-            lead_data = get_data(lead_stages, from_date, dates)
+            lead_data = get_data(lead_stages, dates, to_date)
             for key, value in lead_data.iteritems():
                 ret.append(format_data(key, value, "Lead"))
     if opportunities == '1':
         oppt_stages = {k:v for k, v in funnel_stages.iteritems()
                        if v[0] == "Opportunity"}
         if oppt_stages:
-            oppt_data = get_data(oppt_stages, from_date, dates)
+            oppt_data = get_data(oppt_stages, dates, to_date)
             for key, value in oppt_data.iteritems():
                 ret.append(format_data(key, value, "Opportunity"))
     if quotations == '1':
-        print("quotestages")
         quote_stages = {k:v for k, v in funnel_stages.iteritems()
                         if v[0] == "Quotation"}
         if quote_stages:
-            quote_data = get_data(quote_stages, from_date, dates)
+            quote_data = get_data(quote_stages, dates, to_date)
             for key, value in quote_data.iteritems():
                 ret.append(format_data(key, value, "Quotation"))
 
     return {
         "dataset": ret,
-        "columns": [str(date['start_date']) for date in dates]
+        "columns": [str(date['start_date']) for date in dates][::-1]
         }
 
 
@@ -73,14 +71,14 @@ def setup_dates(from_date, to_date, date_range):
         next_date = start_date + datetime.timedelta(days=int(date_range))
         ret.append(format_date(start_date, next_date, column))
         start_date = next_date + datetime.timedelta(days=1)
-    return sorted(ret, key=lambda k: int(k['idx']))
+    return sorted(ret, key=lambda k: int(k['idx']), reverse=True)
 
 
 def format_date(start_date, next_date, idx):
     return {"idx": idx, "start_date": start_date, "end_date": next_date}
 
 
-def get_data(stages, start_date, dates):
+def get_data(stages, dates, end_date):
     # hack to get idx 0 of tuple (doctype name) from first item of stages dict
     doctype = stages[stages.keys()[0]][0]
     # set up a dict to hold a list of # in stage for each date range (history)
@@ -90,25 +88,24 @@ def get_data(stages, start_date, dates):
     stage_history = {}
     for key, value in stages.iteritems():
         stage_history[value[1]] = []
-    initial_entry = get_init_data(
-        doctype, get_blank_stage_template(stages), start_date
-        )
-
-    for key, value in initial_entry.iteritems():
-        stage_history[key].append(value)
+    end_date_entry = get_init_data(doctype, get_blank_stage_template(stages), end_date)
+    for key, value in end_date_entry.iteritems():
+        stage_history[key].insert(0, value)
     for date in dates:
         next_set = get_changes(doctype, get_blank_stage_template(stages), date)
         for key, value in next_set.iteritems():
-            next_value = stage_history[key][-1] + next_set[key]
+            next_value = stage_history[key][0] + next_set[key]
             if next_value >= 0:
-                stage_history[key].append(next_value)
+                #print("insert value")
+                stage_history[key].insert(0, next_value)
             else:
-                stage_history[key].append(0)
-
-    # need to pop initial data from set
-    # change this to pop last entry when using rewind method
+                #print("insert 0")
+                stage_history[key].insert(0, 0)
+        #print(stage_history)
+    # pop first date still? or pop last date?
     for key, value in stage_history.iteritems():
         value.pop(0)
+        value = reversed(value)
     return stage_history
 
 
@@ -122,49 +119,63 @@ def get_blank_stage_template(stages):
 # need this to rewind from end date rather than fast-forward from start date
 def get_changes(doctype, stage_template, date):
     query = frappe.db.sql("""
-        select a.changed_doc_name, a.old_value, a.new_value, b.status
+        select a.changed_doc_name, a.old_value, a.new_value, b.status, b.creation
         from `tab{0}` b
         left outer join `tab{0} Field History` a on a.changed_doc_name = b.name
         where a.fieldname = "status" and (date(a.date) between %s and %s)
-        and (date(b.modified) between %s and %s)
         union
-        select a.changed_doc_name, a.old_value, a.new_value, b.status
+        select a.changed_doc_name, a.old_value, a.new_value, b.status, b.creation
         from `tab{0}` b
         right outer join `tab{0} Field History` a on a.changed_doc_name = b.name
         where a.fieldname = "status" and (date(a.date) between %s and %s)
-        and (date(b.modified) between %s and %s)
     """.format(doctype),
         (date['start_date'], date['end_date'], date['start_date'],
-        date['end_date'], date['start_date'], date['end_date'],
-        date['start_date'], date['end_date']), as_dict=True)
+        date['end_date']), as_dict=True)
     for entry in query:
-        if entry['old_value'] != None:
+        creation = entry['creation'].date()
+        if creation >= date['start_date']:
             try:
-                stage_template[entry['old_value']] -= 1
+                stage_template[entry['status']] -= 1
+#                stage_template[entry['new_value']] -= 1
+#                stage_template[entry['old_value']] -= 1
             except KeyError:
+                try:
+                    stage_template[entry['new_value']] -= 3
+                except:
+                    stage_template[entry['old_value']] -= 3
+        elif entry['old_value'] != None:
+            print("elif1")
+            try:
+                stage_template[entry['old_value']] += 1
+            except KeyError:
+                print(entry['old_value'])
                 pass
             try:
-                stage_template[entry['new_value']] += 1
+                stage_template[entry['new_value']] -= 1
             except KeyError:
+                print(entry['new_value'])
                 pass
         elif entry['old_value'] == None and entry['new_value'] != None:
+            print("elif2")
             try:
-                stage_template[entry['new_value']] += 1
+                stage_template[entry['new_value']] -= 1
             except KeyError:
                 pass
         else:
+            print("else")
             try:
-                stage_template[entry['status']] += 1
+                stage_template[entry['status']] -= 1
             except KeyError:
                 pass
+    #print(stage_template)
     return stage_template
 
 
-def get_init_data(doctype, stage_template, start_date):
+def get_init_data(doctype, stage_template, end_date):
     query = frappe.db.sql("""
         select distinct `name`, `status` from `tab{0}`
-        where (date(`modified`) < %s)
-    """.format(doctype), start_date, as_dict=True)
+        where (date(`tab{0}`.creation) < %s)
+    """.format(doctype), end_date, as_dict=True)
     for entry in query:
         try:
             stage_template[entry['status']] += 1
