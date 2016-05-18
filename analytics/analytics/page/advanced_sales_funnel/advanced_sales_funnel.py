@@ -26,7 +26,6 @@ def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
     if leads == '1':
         lead_stages = {k:v for k, v in funnel_stages.iteritems()
                        if v[0] == "Lead"}
-        print(lead_stages)
         if lead_stages:
             lead_data = get_data(lead_stages, dates, to_date)
             for key, value in lead_data.iteritems():
@@ -96,12 +95,9 @@ def get_data(stages, dates, end_date):
         for key, value in next_set.iteritems():
             next_value = stage_history[key][0] + next_set[key]
             if next_value >= 0:
-                #print("insert value")
                 stage_history[key].insert(0, next_value)
             else:
-                #print("insert 0")
                 stage_history[key].insert(0, 0)
-        #print(stage_history)
     # pop first date still? or pop last date?
     for key, value in stage_history.iteritems():
         value.pop(0)
@@ -132,42 +128,47 @@ def get_changes(doctype, stage_template, date):
         (date['start_date'], date['end_date'], date['start_date'],
         date['end_date']), as_dict=True)
     for entry in query:
-        creation = entry['creation'].date()
-        if creation >= date['start_date']:
-            try:
-                stage_template[entry['status']] -= 1
-#                stage_template[entry['new_value']] -= 1
-#                stage_template[entry['old_value']] -= 1
-            except KeyError:
+        if entry['creation'] != None:
+            creation = entry['creation'].date()
+            if creation >= date['start_date']:
                 try:
-                    stage_template[entry['new_value']] -= 3
+                    stage_template[entry['status']] -= 1
+    #                stage_template[entry['new_value']] -= 1
+    #                stage_template[entry['old_value']] -= 1
+                except KeyError:
+                    try:
+                        stage_template[entry['new_value']] -= 1
+                    except:
+                        stage_template[entry['old_value']] -= 1
+                del entry
+            else:
+                try:
+                    stage_template[entry['new_value']] -= 1
                 except:
-                    stage_template[entry['old_value']] -= 3
+                    pass
+                try:
+                    stage_template[entry['old_value']] -= 1
+                except:
+                    pass
         elif entry['old_value'] != None:
-            print("elif1")
             try:
                 stage_template[entry['old_value']] += 1
             except KeyError:
-                print(entry['old_value'])
                 pass
             try:
                 stage_template[entry['new_value']] -= 1
             except KeyError:
-                print(entry['new_value'])
                 pass
         elif entry['old_value'] == None and entry['new_value'] != None:
-            print("elif2")
             try:
                 stage_template[entry['new_value']] -= 1
             except KeyError:
                 pass
         else:
-            print("else")
             try:
                 stage_template[entry['status']] -= 1
             except KeyError:
                 pass
-    #print(stage_template)
     return stage_template
 
 
