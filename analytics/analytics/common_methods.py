@@ -1,12 +1,26 @@
+from random import *
 import frappe
 from frappe.client import get_list
 from frappe.core.doctype.doctype.doctype import DocType
 from frappe.desk.form.meta import get_meta
 from frappe.model.document import Document
 import ast
+import datetime
 import json
 
 from .doctype_template import get_change_doctype_json
+
+
+def get_pallete(num):
+    pallete = []
+    h, s, v = random()*6, .5, 243.2
+    for i in range(num):
+        h += 3.708
+        pallete.append('#'+'%02x'*3%((v,v-v*s*abs(1-h%2),v-v*s)*3)[5**int(h)/3%3::int(h)%2+1][:3])
+        if i % 5/4:
+            s += .1
+            v -= 51.2
+    return pallete
 
 
 def delete_history(doc, method):
@@ -23,7 +37,9 @@ def delete_history(doc, method):
 
 def dump_pre_save_doc(doc, method):
     if is_versionable(doc):
-        doc_dict = doc.as_dict()
+        doc_dict = date_hook(doc.as_dict())
+        print("DICT HERE")
+        print(doc_dict)
         storage_doc = {
             "doctype": "Doc History Temp",
             "json_blob": doc_dict
@@ -77,12 +93,13 @@ def check_if_module_is_versionable(doc):
 def log_field_changes(new_dict, old_dict):
     ignored_fields = ["modified", "creation", "__onload"]
     for k, v in old_dict.iteritems():
-        if type(new_dict[k]) != type(old_dict[k]):
-            try:
-                new_dict[k] = str(new_dict[k])
-                old_dict[k] = str(old_dict[k])
-            except:
-                frappe.msgprint("Did not track field history for {}".format(k))
+
+# these are commented out b/c they're causing issues with datetimes
+# string comparison is wrong, says they're changed b/c Y-m-d != m-d-Y
+#        if type(new_dict[k]) != type(old_dict[k]):
+#            new_dict[k] = str(new_dict[k])
+#            old_dict[k] = str(old_dict[k])
+
         if new_dict[k] != old_dict[k] and k not in ignored_fields:
                 doc = {
                     "doctype": get_analytics_doctype_name(old_dict['doctype']),
@@ -171,16 +188,14 @@ def sort_temp_entries(doc, method):
 
     for name in changed_fields:
         doc = frappe.get_doc("Doc History Temp", name['name'])
-    	old_dict = ast.literal_eval(doc.json_blob)
-        try:
-            new_dict = frappe.client.get(old_dict['doctype'], old_dict['name'])
-            # WHY DOES THIS HAVE TO BE BACKWARDS
+        old_dict = ast.literal_eval(doc.json_blob)
+	try:
+	    new_dict = frappe.client.get(old_dict['doctype'], old_dict['name'])
+#       WHY DOES THIS HAVE TO BE BACKWARDS
             log_field_changes(old_dict, new_dict)
             doc.delete()
-        except:
-            insert_new_doc(old_dict)
-            doc.delete()
-
+	except: # new doc, does not exist yet
+	    pass
 
 def del_items(dictionary):
     if "items" in dictionary.keys():
@@ -189,8 +204,7 @@ def del_items(dictionary):
 
 def date_hook(dictionary):
     for key, value in dictionary.iteritems():
-        try:
-            dictionary[key] = datetime.datetime.strptime(value, "%m-%d-%Y %H:%M:%S")
-	except:
-	    pass
+        if str(type(value)) == "<type 'datetime.datetime'>":
+            print(key, value)
+            dictionary[key] = datetime.datetime.strftime(value, "%m-%d-%Y %H:%M:%S")
     return dictionary
