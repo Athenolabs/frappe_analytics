@@ -11,6 +11,8 @@ import json
 
 from frappe import _
 
+from analytics.analytics.common_methods import get_pallete
+
 
 @frappe.whitelist()
 def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
@@ -45,11 +47,19 @@ def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
             for key, value in quote_data.iteritems():
                 ret.append(format_data(key, value, "Quotation"))
 
+    ret = get_colors(ret)
+
     return {
         "dataset": ret,
         "columns": [str(date['start_date']) for date in dates][::-1]
         }
 
+
+def get_colors(ret):
+    colors = get_pallete(len(ret))
+    for idx, entry in enumerate(ret):
+        entry['backgroundColor'] = colors[idx]
+    return ret
 
 def format_data(key, value, document):
     return {
