@@ -1,3 +1,4 @@
+from random import *
 import frappe
 from frappe.client import get_list
 from frappe.core.doctype.doctype.doctype import DocType
@@ -8,6 +9,18 @@ import datetime
 import json
 
 from .doctype_template import get_change_doctype_json
+
+
+def get_pallete(num):
+    pallete = []
+    h, s, v = random()*6, .5, 243.2
+    for i in range(num):
+        h += 3.708
+        pallete.append('#'+'%02x'*3%((v,v-v*s*abs(1-h%2),v-v*s)*3)[5**int(h)/3%3::int(h)%2+1][:3])
+        if i % 5/4:
+            s += .1
+            v -= 51.2
+    return pallete
 
 
 def delete_history(doc, method):
