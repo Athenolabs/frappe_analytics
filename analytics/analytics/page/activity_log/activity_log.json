@@ -1,0 +1,22 @@
+{
+ "content": null, 
+ "creation": "2016-05-18 15:27:42.185201", 
+ "docstatus": 0, 
+ "doctype": "Page", 
+ "idx": 0, 
+ "modified": "2016-05-18 15:27:55.108944", 
+ "modified_by": "Administrator", 
+ "module": "Analytics", 
+ "name": "activity-log", 
+ "owner": "Administrator", 
+ "page_name": "Activity Log", 
+ "roles": [
+  {
+   "role": "Sales Master Manager"
+  }
+ ], 
+ "script": null, 
+ "standard": "Yes", 
+ "style": null, 
+ "title": "Activity Log"
+}
