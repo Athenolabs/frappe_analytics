@@ -17,6 +17,8 @@ from analytics.analytics.common_methods import get_pallete
 @frappe.whitelist()
 def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
                     quotations):
+    quotations, opportunities = 0, 0
+
     funnel_stages = get_funnel_setup_info()
     ret = []
     x_axis_interval = date_range_to_int(date_range)
@@ -31,21 +33,30 @@ def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
         if lead_stages:
             lead_data = get_data(lead_stages, dates, to_date)
             for key, value in lead_data.iteritems():
-                ret.append(format_data(key, value, "Lead"))
+                stage_values = []
+                for a in value:
+                    stage_values.insert(0, len(a['docs']))
+                ret.append(format_data(key, stage_values, "Lead"))
     if opportunities == '1':
         oppt_stages = {k:v for k, v in funnel_stages.iteritems()
                        if v[0] == "Opportunity"}
         if oppt_stages:
             oppt_data = get_data(oppt_stages, dates, to_date)
             for key, value in oppt_data.iteritems():
-                ret.append(format_data(key, value, "Opportunity"))
+                stage_values = []
+                for a in value:
+                    stage_values.insert(0, len(a['docs']))
+                ret.append(format_data(key, stage_values, "Opportunity"))
     if quotations == '1':
         quote_stages = {k:v for k, v in funnel_stages.iteritems()
                         if v[0] == "Quotation"}
         if quote_stages:
             quote_data = get_data(quote_stages, dates, to_date)
             for key, value in quote_data.iteritems():
-                ret.append(format_data(key, value, "Quotation"))
+                stage_values = []
+                for a in value:
+                    stage_values.insert(0, len(a['docs']))
+                ret.append(format_data(key, stage_values, "Quotation"))
 
     ret = get_colors(ret)
 
@@ -60,6 +71,7 @@ def get_colors(ret):
     for idx, entry in enumerate(ret):
         entry['backgroundColor'] = colors[idx]
     return ret
+
 
 def format_data(key, value, document):
     return {
@@ -87,32 +99,50 @@ def format_date(start_date, next_date, idx):
     return {"idx": idx, "start_date": start_date, "end_date": next_date}
 
 
-def get_data(stages, dates, end_date):
-    # hack to get idx 0 of tuple (doctype name) from first item of stages dict
-    doctype = stages[stages.keys()[0]][0]
-    # set up a dict to hold a list of # in stage for each date range (history)
-    # also, set up a template to be able to += / -= and then append to the
-    # master history list
-    # looks like {stage_name: [# in range 1, # in range 2, etc]}
-    stage_history = {}
+def setup_dict_for_data(doctype, stages, dates, end_date):
+    data = {}
     for key, value in stages.iteritems():
-        stage_history[value[1]] = []
-    end_date_entry = get_init_data(doctype, get_blank_stage_template(stages), end_date)
-    for key, value in end_date_entry.iteritems():
-        stage_history[key].insert(0, value)
-    for date in dates:
-        next_set = get_changes(doctype, get_blank_stage_template(stages), date)
-        for key, value in next_set.iteritems():
-            next_value = stage_history[key][0] + next_set[key]
-            if next_value >= 0:
-                stage_history[key].insert(0, next_value)
-            else:
-                stage_history[key].insert(0, 0)
+        data[value[1]] = [
+            {'start_date' : date['start_date'],
+             'end_date': date['end_date'],
+             'docs': [], 'idx': idx} for idx, date in enumerate(dates)
+             ]
+    data['current'] = [{key: []} for key, value in data.iteritems()]
+    current_data = get_init_data(doctype, end_date)
+    for row in data['current']:
+        row[row.keys()[0]] = [doc for doc in current_data if
+                              doc['status'] == row.keys()[0]]
+    return data
+
+
+def get_data(stages, dates, end_date):
+    # get idx 0 of tuple (doctype name) from first item of stages dict
+    doctype = stages[stages.keys()[0]][0]
+    data = setup_dict_for_data(doctype, stages, dates, end_date)
+    current_info = data.pop('current', None)
+    #print(current_info)
+    for key, value in data.iteritems():
+        value[0]['docs'] = [entry[entry.keys()[0]] for entry in current_info
+                            if entry.keys()[0] == key]
+        value[0]['docs'] = value[0]['docs'][0]
+
+#   Filter out by creation date
+    for key, value in data.iteritems():
+        for idx, entry in enumerate(value):
+            for row in entry['docs']:
+                if row['creation'].date() < entry['start_date']:
+                    try:
+                        value[idx + 1]['docs'].append(row)
+                    except IndexError:
+                        pass
+
+    return data
+
     # pop first date still? or pop last date?
-    for key, value in stage_history.iteritems():
-        value.pop(0)
-        value = reversed(value)
-    return stage_history
+    #for key, value in stage_history.iteritems():
+    #    value.pop(0)
+    #    value = reversed(value)
+    #return stage_history
 
 
 def get_blank_stage_template(stages):
@@ -123,77 +153,29 @@ def get_blank_stage_template(stages):
 
 
 # need this to rewind from end date rather than fast-forward from start date
-def get_changes(doctype, stage_template, date):
-    query = frappe.db.sql("""
-        select a.changed_doc_name, a.old_value, a.new_value, b.status, b.creation
-        from `tab{0}` b
-        left outer join `tab{0} Field History` a on a.changed_doc_name = b.name
-        where a.fieldname = "status" and (date(a.date) between %s and %s)
-        union
-        select a.changed_doc_name, a.old_value, a.new_value, b.status, b.creation
-        from `tab{0}` b
-        right outer join `tab{0} Field History` a on a.changed_doc_name = b.name
-        where a.fieldname = "status" and (date(a.date) between %s and %s)
-    """.format(doctype),
-        (date['start_date'], date['end_date'], date['start_date'],
-        date['end_date']), as_dict=True)
-    for entry in query:
-        if entry['creation'] != None:
-            creation = entry['creation'].date()
-            if creation >= date['start_date']:
-                try:
-                    stage_template[entry['status']] -= 1
-    #                stage_template[entry['new_value']] -= 1
-    #                stage_template[entry['old_value']] -= 1
-                except KeyError:
-                    try:
-                        stage_template[entry['new_value']] -= 1
-                    except:
-                        stage_template[entry['old_value']] -= 1
-                del entry
-            else:
-                try:
-                    stage_template[entry['new_value']] -= 1
-                except:
-                    pass
-                try:
-                    stage_template[entry['old_value']] -= 1
-                except:
-                    pass
-        elif entry['old_value'] != None:
-            try:
-                stage_template[entry['old_value']] += 1
-            except KeyError:
-                pass
-            try:
-                stage_template[entry['new_value']] -= 1
-            except KeyError:
-                pass
-        elif entry['old_value'] == None and entry['new_value'] != None:
-            try:
-                stage_template[entry['new_value']] -= 1
-            except KeyError:
-                pass
-        else:
-            try:
-                stage_template[entry['status']] -= 1
-            except KeyError:
-                pass
-    return stage_template
+def get_changes(doctype, key, value):
+#    query = frappe.db.sql("""
+#        select a.changed_doc_name, a.old_value, a.new_value, b.status, b.creation
+#        from `tab{0}` b
+#        left outer join `tab{0} Field History` a on a.changed_doc_name = b.name
+#        where a.fieldname = "status" and (date(a.date) between %s and %s)
+#        union
+#        select a.changed_doc_name, a.old_value, a.new_value, b.status, b.creation
+#        from `tab{0}` b
+#        right outer join `tab{0} Field History` a on a.changed_doc_name = b.name
+#        where a.fieldname = "status" and (date(a.date) between %s and %s)
+#    """.format(doctype),
+#        (date['start_date'], date['end_date'], date['start_date'],
+#        date['end_date']), as_dict=True)
+
+    pass
 
 
-def get_init_data(doctype, stage_template, end_date):
-    query = frappe.db.sql("""
-        select distinct `name`, `status` from `tab{0}`
-        where (date(`tab{0}`.creation) < %s)
+def get_init_data(doctype, end_date):
+    return frappe.db.sql("""
+        select distinct `name`, `creation`, `status`, `owner` from `tab{0}`
+        where (date(`tab{0}`.creation) <= %s)
     """.format(doctype), end_date, as_dict=True)
-    for entry in query:
-        try:
-            stage_template[entry['status']] += 1
-        except KeyError:
-            pass
-    return stage_template
-
 
 
 def get_funnel_setup_info():
