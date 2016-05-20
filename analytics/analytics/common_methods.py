@@ -93,26 +93,28 @@ def is_versionable(doc):
 
 
 def check_if_module_is_versionable(doc):
-	from frappe.client import get
-	module = frappe.model.meta.get_meta(doc.doctype).as_dict()['module']
-	try:
-		settings = json.loads(get(
-			"Document Versioning Settings"
-			)['stored_modules'])
-	except TypeError:
-		settings = {}
-		settings[module] = False
-	return settings[module]
+    module = doc.meta.module
+    try:
+        settings = json.loads(
+            frappe.model.document.get_doc(
+                "Document Versioning Settings", "Document Versioning Settings"
+            ).as_dict()['stored_modules'])
+    except KeyError:
+        settings = {}
+        settings[module] = False
+    return settings[module]
 
 
 def log_field_changes(new_dict, old_dict):
     ignored_fields = ["modified", "creation", "__onload"]
     for k, v in old_dict.iteritems():
+
 # these are commented out b/c they're causing issues with datetimes
 # string comparison is wrong, says they're changed b/c Y-m-d != m-d-Y
 #        if type(new_dict[k]) != type(old_dict[k]):
 #            new_dict[k] = str(new_dict[k])
 #            old_dict[k] = str(old_dict[k])
+
         if new_dict[k] != old_dict[k] and k not in ignored_fields:
                 doc = {
                     "doctype": get_analytics_doctype_name(old_dict['doctype']),
@@ -133,6 +135,28 @@ def log_field_changes(new_dict, old_dict):
                     for idx, entry in enumerate(doc['old_value']):
                         log_field_changes(doc['new_value'][idx], entry)
 
+
+def insert_new_doc(dictionary):
+    ignored_fields = ["modified", "creation", "__onload"]
+    for k, v in dictionary.iteritems():
+        if k not in ignored_fields:
+            doc = {
+                "doctype": get_analytics_doctype_name(dictionary['doctype']),
+                "changed_doctype": dictionary['doctype'],
+                "changed_doc_name": dictionary['name'],
+                "fieldname": k,
+                "old_value": None,
+                "new_value": dictionary[k],
+                "modified_by_user": dictionary["modified_by"],
+                "date": dictionary["modified"]
+                }
+            if type(doc['new_value']) is not list:
+                make_doctype_maybe(doc['doctype'])
+                history = Document(doc)
+                history.insert()
+            else:
+                for idx, entry in enumerate(doc['new_value']):
+                    insert_new_doc(doc['new_value'][idx])
 
 def sort_changed_field(doc):
     """ Gets changed field from doc hook, sorts into correct table, and
@@ -162,8 +186,12 @@ def get_analytics_doctype_name(doctype):
 def make_doctype_maybe(doctype_name):
     """ Makes doctype for Analytics app, if necessary"""
     try:
-        dt = frappe.client.get("DocType", doctype_name)
-    except frappe.DoesNotExistError:
+        dt = frappe.get_list(
+            "DocType",
+            filters={"name": doctype_name},
+            ignore_permissions=True
+            )[0]
+    except:
         dt = DocType(get_change_doctype_json(doctype_name))
         dt.insert(ignore_permissions=True)
 
@@ -191,7 +219,6 @@ def del_items(dictionary):
 
 def date_hook(dictionary):
     for key, value in dictionary.iteritems():
-        print(key, value, str(type(value)))
         if str(type(value)) == "<type 'datetime.datetime'>":
             print(key, value)
             dictionary[key] = datetime.datetime.strftime(value, "%m-%d-%Y %H:%M:%S")
