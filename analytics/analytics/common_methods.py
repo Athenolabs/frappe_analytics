@@ -24,7 +24,7 @@ def get_pallete(num):
 
 
 def clean_history():
-    doctypes = frappe.client.get_list("Doctype", limit_page_length=None)
+    doctypes = frappe.client.get_list("DocType", limit_page_length=None)
     for doctype in doctypes:
         if "Field History" not in doctype['name']:
             docnames = get_doc_names(doctype['name'])
