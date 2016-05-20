@@ -75,8 +75,8 @@ def filter_salesperson(ret, salesperson):
         filtered = []
         for entry in value:
             for doc in entry['docs']:
-            entry['docs'] = [doc for doc in entry['docs'] if
-                             doc['owner'] == salesperson]
+   	         entry['docs'] = [doc for doc in entry['docs'] if
+                                  doc['owner'] == salesperson]
     return ret
 
 def get_colors(ret):
