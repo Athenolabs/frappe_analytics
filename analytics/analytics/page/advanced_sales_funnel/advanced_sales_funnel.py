@@ -59,7 +59,7 @@ def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
     ret = get_colors(ret)
 
     return {
-        "dataset": ret,
+        "dataset": sorted(ret, key=lambda k: int(k['idx'])),
         "columns": [str(date['start_date']) for date in dates][::-1]
         }
 
@@ -73,16 +73,23 @@ def get_colors(ret):
 
 def format_data(key, value, document):
     return {
+                "idx": get_idx(document, key),
                 "label": document + " - " + key,
                 "data": value,
                 "backgroundColor": "#%06x" % random.randint(0, 0xFFFFFF)
         }
 
 
+def get_idx(document, stage):
+    funnel = get_funnel_setup_info()
+    for key, value in funnel.iteritems():
+        if value[0] == document and value[1] == stage:
+            return int(key)
+
 def setup_dates(from_date, to_date, date_range):
     start_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date()
     end_date = datetime.datetime.strptime(to_date, "%Y-%m-%d").date()
-    #end_date += datetime.timedelta(days=1)
+    end_date += datetime.timedelta(days=1)
     time_period = (end_date - start_date).days
     columns = (int(time_period) / (int(date_range) + 1))
     ret = []
@@ -119,7 +126,6 @@ def get_data(stages, dates, end_date):
     data = setup_dict_for_data(doctype, stages, dates, end_date)
     current_info = data.pop('current', None)
     changes = get_changes(doctype, dates, end_date, stages)
-    #print(current_info)
     for key, value in data.iteritems():
         value[0]['docs'] = [entry[entry.keys()[0]] for entry in current_info
                             if entry.keys()[0] == key]
@@ -134,7 +140,6 @@ def get_data(stages, dates, end_date):
 #   ENTRY = DICT OF IDX, START DATE, END DATE, DOCUMENT LIST
 #   ROW = DICT OF DOCUMENT - NAME, STATUS, CREATION, OWNER
     for key, value in data.iteritems():
-        #print(value)
         for idx, entry in enumerate(value):
             changed_in_period = changes[key][idx][idx]
             if len(changed_in_period) > 0:
@@ -143,16 +148,12 @@ def get_data(stages, dates, end_date):
                     ch_vals = change[ch_doc]
                     for row in entry['docs']:
                         if row['name'] == ch_doc:
-                            print len(entry['docs'])
                             try:
-                                print(ch_doc, ch_vals)
-                                print(idx)
                                 data[ch_vals['old_value']][idx]['docs'].append(row)
                             except KeyError:
                                 pass
                             entry['docs'] = [doc for doc in entry['docs'] if
                                              doc['name'] != ch_doc]
-                            print(len(entry['docs']))
             for row in entry['docs']:
                 if row['creation'].date() < entry['start_date']:
                     try:
