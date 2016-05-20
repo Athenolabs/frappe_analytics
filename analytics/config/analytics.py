@@ -9,9 +9,14 @@ def get_data():
 			"items": [
 				{
 					"type": "page",
-                    "Label": "Sales Pipeline Over Time",
+                    "label": "Sales Pipeline Over Time",
                     "name": "advanced-sales-funnel",
 					"icon": "icon-bar-chart",
+				},
+				{
+					"type": "page",
+					"label": "Activity Log",
+					"name": "activity-log",
 				},
 			]
 		},
