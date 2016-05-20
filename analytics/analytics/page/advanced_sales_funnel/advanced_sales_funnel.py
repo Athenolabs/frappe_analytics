@@ -86,6 +86,7 @@ def get_idx(document, stage):
         if value[0] == document and value[1] == stage:
             return int(key)
 
+
 def setup_dates(from_date, to_date, date_range):
     start_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date()
     end_date = datetime.datetime.strptime(to_date, "%Y-%m-%d").date()
@@ -142,6 +143,7 @@ def get_data(stages, dates, end_date):
     for key, value in data.iteritems():
         for idx, entry in enumerate(value):
             changed_in_period = changes[key][idx][idx]
+            # go through changed_in_period to check for matches
             if len(changed_in_period) > 0:
                 for change in changed_in_period:
                     ch_doc = change.keys()[0]
@@ -152,8 +154,31 @@ def get_data(stages, dates, end_date):
                                 data[ch_vals['old_value']][idx]['docs'].append(row)
                             except KeyError:
                                 pass
-                            entry['docs'] = [doc for doc in entry['docs'] if
-                                             doc['name'] != ch_doc]
+                            entry['docs'] = [
+                                doc for doc in entry['docs'] if
+                                doc['name'] != ch_doc
+                                ]
+                            changed_in_period = [
+                                doc for doc in changed_in_period if
+                                doc.keys()[0] != ch_doc
+                                ]
+            # go through changed_in_period for non-matches
+            if len(changed_in_period) > 0:
+                for change in changed_in_period:
+                    ch_doc = change.keys()[0]
+                    ch_vals = change[ch_doc]
+                    try:
+                        fetched = frappe.get_doc(doctype, ch_doc).as_dict()
+                        new_doc = {
+                            'name': fetched['name'],
+                            'creation': fetched['creation'],
+                            'status': fetched['status'],
+                            'owner': fetched['owner']
+                            }
+                        data[ch_vals['old_value']][idx]['docs'].append(new_doc)
+                    except:
+                        pass
+
             for row in entry['docs']:
                 if row['creation'].date() < entry['start_date']:
                     try:
