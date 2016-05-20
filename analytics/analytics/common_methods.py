@@ -23,17 +23,32 @@ def get_pallete(num):
     return pallete
 
 
-def delete_history(doc, method):
-    if doc.doctype is not "Doc History Temp":
-        frappe.msgprint("not doc history temp")
-        history_doctype = get_analytics_doctype_name(doc.doctype)
-        history_list = frappe.client.get_list(
-            history_doctype, filters={"changed_doc_name": doc.name}
-            )
-    if history_list:
-        for item in history_list:
-            frappe.delete_doc(history_doctype, item['name'])
+def clean_history():
+    doctypes = frappe.client.get_list("Doctype", limit_page_length=None)
+    for doctype in doctypes:
+        if "Field History" not in doctype['name']:
+            docnames = get_doc_names(doctype['name'])
+            for entry in docnames:
+                try:
+                    frappe.client.get(doctype['name'], entry['changed_doc_name'])
+                except:
+                    try:
+                        frappe.client.delete(
+                            (doctype['name'] + " Field History"),
+                            entry['name']
+                            )
+                    except:
+                        pass
 
+
+def get_doc_names(docname):
+    try:
+        return frappe.db.sql("""
+            select `name`, `changed_doc_name` from `tab{0} Field History`
+            group by `changed_doc_name`
+        """.format(docname), as_dict=True)
+    except:
+        return []
 
 def dump_pre_save_doc(doc, method):
     if is_versionable(doc):

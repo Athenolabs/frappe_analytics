@@ -84,23 +84,23 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-#scheduler_events = {
+scheduler_events = {
 # 	"all": [
 # 		"analytics.analytics.common_methods.sort_temp_entries"
 # 	],
 # 	"daily": [
-# 		"analytics.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"analytics.tasks.hourly"
-# 	],
+ #		"analytics.analytics.common_methods.clean_history"
+#        ]
+ 	"hourly": [
+ 		"analytics.analytics.common_methods.clean_history"
+ 	]
 # 	"weekly": [
 # 		"analytics.tasks.weekly"
 # 	]
 # 	"monthly": [
 # 		"analytics.tasks.monthly"
 # 	]
-#}
+}
 
 # Testing
 # -------
