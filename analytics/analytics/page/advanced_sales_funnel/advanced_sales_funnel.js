@@ -20,22 +20,23 @@ this.AdvancedSalesFunnel = Class.extend({
 	},
 	get_sales_people: function() {
 		var me = this;
-		frappe.call({
+		return frappe.call({
 			method: "frappe.client.get_list",
 			args: {
 				"doctype": "Sales Person"
 			},
 			callback: function(r) {
-				var sales_people = []
+				sales_people = []
 				r.message.forEach(function(obj){
 					sales_people.push(obj.name)
 				})
-				return sales_people
 			}
 		})
 	},
 	setup: function(wrapper) {
 		var me = this;
+		sales_people = me.get_sales_people();
+
 		this.elements = {
 			layout: $(wrapper).find(".layout-main"),
 			from_date: wrapper.page.add_date(__("From Date")),
@@ -59,17 +60,19 @@ this.AdvancedSalesFunnel = Class.extend({
 			quotations: wrapper.page.add_field(
 				{fieldtype: "Check", label: __("Quotations"), "default": true}
 			),
-
-//			sales_person: wrapper.page.add_field({
-//				fieldtype:"Select", label:__("Sales Person"), fieldname: "sales_person"
-//			}),
+			sales_person: wrapper.page.add_select(
+				__("Sales Person"),
+				['All', 'moe.barry@energychoice.com', 'manda.schulman@energychoice.com']
+			),
 			refresh_btn: wrapper.page.set_primary_action(__("Reload"),
-				function() { me.get_data(); }, "icon-refresh"),
+				function() { me.get_data(); }, "icon-refresh"
+			),
 		};
 		this.options = {
 			from_date: frappe.datetime.add_months(frappe.datetime.get_today(), -1),
 			to_date: frappe.datetime.get_today(),
 			date_range: "Weekly",
+			sales_person: "All",
 			leads: true,
 			opportunities: true,
 			quotations: true
@@ -90,13 +93,14 @@ this.AdvancedSalesFunnel = Class.extend({
 	},
 	get_data: function(page, btn) {
 		var me = this;
-		var sel_range = $(".input-with-feedback option:selected").text();
+		sales_person = ($(me.elements.sales_person).val())
 		frappe.call({
 			method: "analytics.analytics.page.advanced_sales_funnel.advanced_sales_funnel.get_funnel_data",
 			args: {
 				from_date: me.options.from_date,
 				to_date: me.options.to_date,
-				date_range: sel_range,
+				date_range: $(me.elements.date_range.get_value()).selector,
+				salesperson: sales_person,
 				leads: $(me.elements.leads.get_value()).length,
 				opportunities: $(me.elements.opportunities.get_value()).length,
 				quotations: $(me.elements.quotations.get_value()).length

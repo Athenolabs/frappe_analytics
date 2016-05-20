@@ -2,7 +2,6 @@
 # License: GNU General Public License v3. See license.txt
 
 from __future__ import unicode_literals
-from collections import OrderedDict
 
 import frappe
 import random
@@ -15,8 +14,8 @@ from analytics.analytics.common_methods import get_pallete
 
 
 @frappe.whitelist()
-def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
-                    quotations):
+def get_funnel_data(from_date, to_date, date_range, salesperson, leads,
+                    opportunities, quotations):
     funnel_stages = get_funnel_setup_info()
     ret = []
     x_axis_interval = date_range_to_int(date_range)
@@ -30,6 +29,8 @@ def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
                        if v[0] == "Lead"}
         if lead_stages:
             lead_data = get_data(lead_stages, dates, to_date)
+            if salesperson != 'All':
+                lead_data = filter_salesperson(lead_data, salesperson)
             for key, value in lead_data.iteritems():
                 stage_values = []
                 for a in value:
@@ -40,6 +41,8 @@ def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
                        if v[0] == "Opportunity"}
         if oppt_stages:
             oppt_data = get_data(oppt_stages, dates, to_date)
+            if salesperson != 'All':
+                oppt_data = filter_salesperson(oppt_data, salesperson)
             for key, value in oppt_data.iteritems():
                 stage_values = []
                 for a in value:
@@ -50,11 +53,14 @@ def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
                         if v[0] == "Quotation"}
         if quote_stages:
             quote_data = get_data(quote_stages, dates, to_date)
+            if salesperson != 'All':
+                quote_data = filter_salesperson(quote_data, salesperson)
             for key, value in quote_data.iteritems():
                 stage_values = []
                 for a in value:
                     stage_values.insert(0, len(a['docs']))
                 ret.append(format_data(key, stage_values, "Quotation"))
+
 
     ret = get_colors(ret)
 
@@ -63,6 +69,17 @@ def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
         "columns": [str(date['start_date']) for date in dates][::-1]
         }
 
+
+def filter_salesperson(ret, salesperson):
+    for key, value in ret.iteritems():
+        filtered = []
+        for entry in value:
+            for doc in entry['docs']:
+                frappe.msgprint(doc['owner'])
+            entry['docs'] = [doc for doc in entry['docs'] if
+                             doc['owner'] == salesperson]
+
+    return ret
 
 def get_colors(ret):
     colors = get_pallete(len(ret))
