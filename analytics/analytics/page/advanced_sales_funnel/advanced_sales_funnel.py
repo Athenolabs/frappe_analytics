@@ -75,10 +75,8 @@ def filter_salesperson(ret, salesperson):
         filtered = []
         for entry in value:
             for doc in entry['docs']:
-                frappe.msgprint(doc['owner'])
             entry['docs'] = [doc for doc in entry['docs'] if
                              doc['owner'] == salesperson]
-
     return ret
 
 def get_colors(ret):
