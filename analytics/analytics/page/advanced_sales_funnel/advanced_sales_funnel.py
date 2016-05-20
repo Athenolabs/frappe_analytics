@@ -17,8 +17,6 @@ from analytics.analytics.common_methods import get_pallete
 @frappe.whitelist()
 def get_funnel_data(from_date, to_date, date_range, leads, opportunities,
                     quotations):
-    quotations, opportunities = 0, 0
-
     funnel_stages = get_funnel_setup_info()
     ret = []
     x_axis_interval = date_range_to_int(date_range)
@@ -120,29 +118,48 @@ def get_data(stages, dates, end_date):
     doctype = stages[stages.keys()[0]][0]
     data = setup_dict_for_data(doctype, stages, dates, end_date)
     current_info = data.pop('current', None)
+    changes = get_changes(doctype, dates, end_date, stages)
     #print(current_info)
     for key, value in data.iteritems():
         value[0]['docs'] = [entry[entry.keys()[0]] for entry in current_info
                             if entry.keys()[0] == key]
         value[0]['docs'] = value[0]['docs'][0]
 
-#   Filter out by creation date
+#   Move docs with creation before this period into the prev. period,
+#   effectively 'deleting' docs created in the current period
+#   Then, move docs with a status change in the current period into the
+#   'old' status, still in the current period.
+#   KEY = STATUS NAME
+#   VALUE = LIST OF DATE RANGES
+#   ENTRY = DICT OF IDX, START DATE, END DATE, DOCUMENT LIST
+#   ROW = DICT OF DOCUMENT - NAME, STATUS, CREATION, OWNER
     for key, value in data.iteritems():
+        #print(value)
         for idx, entry in enumerate(value):
+            changed_in_period = changes[key][idx][idx]
+            if len(changed_in_period) > 0:
+                for change in changed_in_period:
+                    ch_doc = change.keys()[0]
+                    ch_vals = change[ch_doc]
+                    for row in entry['docs']:
+                        if row['name'] == ch_doc:
+                            print len(entry['docs'])
+                            try:
+                                print(ch_doc, ch_vals)
+                                print(idx)
+                                data[ch_vals['old_value']][idx]['docs'].append(row)
+                            except KeyError:
+                                pass
+                            entry['docs'] = [doc for doc in entry['docs'] if
+                                             doc['name'] != ch_doc]
+                            print(len(entry['docs']))
             for row in entry['docs']:
                 if row['creation'].date() < entry['start_date']:
                     try:
                         value[idx + 1]['docs'].append(row)
                     except IndexError:
                         pass
-
     return data
-
-    # pop first date still? or pop last date?
-    #for key, value in stage_history.iteritems():
-    #    value.pop(0)
-    #    value = reversed(value)
-    #return stage_history
 
 
 def get_blank_stage_template(stages):
@@ -152,23 +169,27 @@ def get_blank_stage_template(stages):
     return template
 
 
-# need this to rewind from end date rather than fast-forward from start date
-def get_changes(doctype, key, value):
-#    query = frappe.db.sql("""
-#        select a.changed_doc_name, a.old_value, a.new_value, b.status, b.creation
-#        from `tab{0}` b
-#        left outer join `tab{0} Field History` a on a.changed_doc_name = b.name
-#        where a.fieldname = "status" and (date(a.date) between %s and %s)
-#        union
-#        select a.changed_doc_name, a.old_value, a.new_value, b.status, b.creation
-#        from `tab{0}` b
-#        right outer join `tab{0} Field History` a on a.changed_doc_name = b.name
-#        where a.fieldname = "status" and (date(a.date) between %s and %s)
-#    """.format(doctype),
-#        (date['start_date'], date['end_date'], date['start_date'],
-#        date['end_date']), as_dict=True)
-
-    pass
+def get_changes(doctype, dates, end_date, stages):
+    ret = {}
+    for key, value in stages.iteritems():
+        ret[value[1]] = [{idx: None } for idx, date in enumerate(dates)]
+    query = frappe.db.sql("""
+        select distinct `changed_doc_name`, `old_value`, `new_value`, `date`
+        from `tab{0} Field History`
+        where `fieldname` = "status" and (date(`date`) <= %s)
+    """.format(doctype), end_date, as_dict=True)
+    for key, value in ret.iteritems():
+        for idx, date in enumerate(dates):
+            ret[key][idx][idx] = [
+                {entry['changed_doc_name']: {
+                    'old_value': entry['old_value'],
+                    'new_value': entry['new_value']
+                    }
+                } for entry in query if
+                date['start_date'] <= entry['date'].date() <= date['end_date']
+                and entry['new_value'] == key
+                ]
+    return ret
 
 
 def get_init_data(doctype, end_date):

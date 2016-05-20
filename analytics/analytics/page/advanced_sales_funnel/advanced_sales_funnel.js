@@ -85,7 +85,7 @@ this.AdvancedSalesFunnel = Class.extend({
 		});
 		// bind refresh
 		this.elements.refresh_btn.on("click", function() {
-			me.get_data();
+			//me.get_data();
 		});
 	},
 	get_data: function(page, btn) {
