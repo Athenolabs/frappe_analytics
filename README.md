@@ -44,9 +44,6 @@ If your reports will require a custom field that isn't provided, set it up with
 fixtures.
 
 #### TO-DO:
-Delete a doc's field history when the doc is deleted.
-Currently it won't work with the "on_trash" hook, as that runs after the doc
-is deleted.
 
 Squash messages for "does not exist" when saving a new field history doctype. 
 - checks if the doctype exists to check if the doctype needs to be created
