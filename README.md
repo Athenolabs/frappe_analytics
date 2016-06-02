@@ -1,9 +1,16 @@
 ## Powerful Analytics for the Frappe Framework
 
-NOTE: THIS APP IS NOT PRODUCTION-READY, AND IS STILL IN TESTING
+NOTE: THIS APP IS NOT PRODUCTION-READY. IT IS EXPECTED TO INSTALL BUT IS IS STILL IN
+THOUROUGH TESTING AND BUG FIXING STATE
 
-This app works to do two things: enables field history tracking, and provides
-advanced reports based on the data it creates.
+This app is supposed to do two things:
+
+**1.) enableing field history tracking**
+
+Let's say you have a price of an item and change that price. The App will enable 
+you to see the entire history of this particular items price.
+
+**2.) providing advanced reports based on the data it creates.**
 
 It's important to note that the reporting based on field history will not
 be helpful for events pre-installation. The data doesn't exist yet. So, despite
