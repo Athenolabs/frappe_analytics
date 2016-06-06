@@ -5,12 +5,12 @@ THOUROUGH TESTING AND BUG FIXING STATE
 
 This app is supposed to do two things:
 
-**1.) enableing field history tracking**
+**1.) Enable field history tracking**
 
 Let's say you have a price of an item and change that price. The App will enable 
 you to see the entire history of this particular items price.
 
-**2.) providing advanced reports based on the data it creates.**
+**2.) Provide advanced reports based on the data it creates.**
 
 It's important to note that the reporting based on field history will not
 be helpful for events pre-installation. The data doesn't exist yet. So, despite
@@ -43,13 +43,6 @@ plug-and-play with the data provided by Frappe and ERPNext.
 If your reports will require a custom field that isn't provided, set it up with
 fixtures.
 
-#### TO-DO:
-
-Squash messages for "does not exist" when saving a new field history doctype. 
-- checks if the doctype exists to check if the doctype needs to be created
-
-Squash messages for "does not exist" when saving a new record. 
-- checks if the record exists (maybe use __local?)
 
 #### License
 
