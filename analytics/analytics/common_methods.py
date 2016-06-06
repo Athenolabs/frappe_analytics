@@ -53,8 +53,6 @@ def get_doc_names(docname):
 def dump_pre_save_doc(doc, method):
     if is_versionable(doc):
         doc_dict = date_hook(doc.as_dict())
-        print("DICT HERE")
-        print(doc_dict)
         storage_doc = {
             "doctype": "Doc History Temp",
             "json_blob": doc_dict
@@ -99,10 +97,10 @@ def check_if_module_is_versionable(doc):
             frappe.model.document.get_doc(
                 "Document Versioning Settings", "Document Versioning Settings"
             ).as_dict()['stored_modules'])
-    except KeyError:
-        settings = {}
-        settings[module] = False
-    return settings[module]
+        value = settings[module]
+    except:
+        value = False
+    return value
 
 
 def log_field_changes(new_dict, old_dict):
@@ -197,20 +195,17 @@ def make_doctype_maybe(doctype_name):
 
 
 def sort_temp_entries(doc, method):
-    changed_fields = get_list(
-        "Doc History Temp", limit_page_length=None
-        )
-
+    changed_fields = get_list("Doc History Temp", limit_page_length=None)
     for name in changed_fields:
         doc = frappe.get_doc("Doc History Temp", name['name'])
         old_dict = ast.literal_eval(doc.json_blob)
-	try:
-	    new_dict = frappe.client.get(old_dict['doctype'], old_dict['name'])
-#       WHY DOES THIS HAVE TO BE BACKWARDS
+        if (len(frappe.client.get_list(
+            old_dict['doctype'], filters={'name': old_dict['name']}
+            )) > 0):
+            new_dict = frappe.client.get(old_dict['doctype'], old_dict['name'])
             log_field_changes(old_dict, new_dict)
             doc.delete()
-	except: # new doc, does not exist yet
-	    pass
+
 
 def del_items(dictionary):
     if "items" in dictionary.keys():
@@ -220,6 +215,5 @@ def del_items(dictionary):
 def date_hook(dictionary):
     for key, value in dictionary.iteritems():
         if str(type(value)) == "<type 'datetime.datetime'>":
-            print(key, value)
             dictionary[key] = datetime.datetime.strftime(value, "%m-%d-%Y %H:%M:%S")
     return dictionary
