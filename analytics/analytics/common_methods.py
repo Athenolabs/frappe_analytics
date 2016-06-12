@@ -97,10 +97,10 @@ def check_if_module_is_versionable(doc):
             frappe.model.document.get_doc(
                 "Document Versioning Settings", "Document Versioning Settings"
             ).as_dict()['stored_modules'])
-        value = settings[module]
     except:
-        value = False
-    return value
+        settings = {}
+        settings[module] = False
+    return settings[module]
 
 
 def log_field_changes(new_dict, old_dict):
