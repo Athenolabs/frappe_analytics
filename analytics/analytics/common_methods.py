@@ -50,9 +50,14 @@ def get_doc_names(docname):
     except:
         return []
 
+
 def dump_pre_save_doc(doc, method):
     if is_versionable(doc):
         doc_dict = date_hook(doc.as_dict())
+        try:
+            doc_dict = json.dumps(doc_dict)
+        except:
+            frappe.throw(doc_dict)
         storage_doc = {
             "doctype": "Doc History Temp",
             "json_blob": doc_dict
@@ -69,25 +74,11 @@ def is_versionable(doc):
 	# slightly odd here, may want to refactor.
 	# since custom field is for DISABLING versioning,
 	# check if the doc is not disabled (dbl negative)
-    if check_if_module_is_versionable(doc):# and not check_if_doc_is_disabled(doc):
+    # TODO disable specific docs via property setter
+    if check_if_module_is_versionable(doc):
         return True
     else:
         return False
-
-
-# relic from when was integrated with framework and property_setter
-#def check_if_doc_is_disabled(doc):
-#	filters = json.dumps({
-#		"doc_type": doc.doctype,
-#		"property": 'disable_versioning'
-#	})
-#	try:
-#		properties = frappe.client.get("Property Setter", filters=filters)
-#		value = properties['value']
-#	except:
-#		# no property setter for given document, so defaults to False
-#		value = False
-#	return value
 
 
 def check_if_module_is_versionable(doc):
@@ -156,6 +147,7 @@ def insert_new_doc(dictionary):
                 for idx, entry in enumerate(doc['new_value']):
                     insert_new_doc(doc['new_value'][idx])
 
+
 def sort_changed_field(doc):
     """ Gets changed field from doc hook, sorts into correct table, and
     removes doc from Frappe's Changed Fields table"""
@@ -168,17 +160,6 @@ def sort_changed_field(doc):
 
 def get_analytics_doctype_name(doctype):
     return (doctype + " Field History")
-
-
-#def sanitize_document(from_doc, to_doctype):
-#    """ Sanitizes document to only contain fields in destination doctype, plus
-#    the destination doctype"""
-#    meta = get_meta(to_doctype)
-#    fields = [field.fieldname for field in meta.fields]
-#    doc_dict = frappe.client.get(from_doc)
-#    sanitized_doc =  {k:v for k, v in doc_dict.iteritems() if k in fields}
-#    sanitized_doc['doctype'] = to_doctype
-#    return sanitized_doc
 
 
 def make_doctype_maybe(doctype_name):
@@ -198,7 +179,11 @@ def sort_temp_entries(doc, method):
     changed_fields = get_list("Doc History Temp", limit_page_length=None)
     for name in changed_fields:
         doc = frappe.get_doc("Doc History Temp", name['name'])
-        old_dict = ast.literal_eval(doc.json_blob)
+
+# TODO fix malformed string errors.
+#### iterate thru and fix/dump bad ones?
+#### 
+        old_dict = json.loads(doc.json_blob)
         if (len(frappe.client.get_list(
             old_dict['doctype'], filters={'name': old_dict['name']}
             )) > 0):
@@ -207,13 +192,18 @@ def sort_temp_entries(doc, method):
             doc.delete()
 
 
-def del_items(dictionary):
-    if "items" in dictionary.keys():
-        del dictionary['items']
+def fix_list(datetimes_in_list):
+    return [date_hook(entry) for entry in datetimes_in_list]
 
 
 def date_hook(dictionary):
     for key, value in dictionary.iteritems():
         if str(type(value)) == "<type 'datetime.datetime'>":
             dictionary[key] = datetime.datetime.strftime(value, "%m-%d-%Y %H:%M:%S")
+        elif str(type(value)) == "<type 'datetime.date'>":
+            dictionary[key] = datetime.datetime.strftime(value, "%m-%d-%Y")
+        elif str(type(value)) == "<type 'list'>":
+            dictionary[key] = fix_list(value)
+        elif type(value) == "<type 'dict'>":
+            dictionary[key] = date_hook(value)
     return dictionary
