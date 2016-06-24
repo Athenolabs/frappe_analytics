@@ -33,10 +33,11 @@ def add_updated_doc(doc, method):
             "name",
             as_dict = False,
             filters = filters)
-        doc = frappe.get_doc("Doc History Temp", docname)
-        doc.is_open = False
-        doc.new_json_blob = doc_dict
-        doc.save()
+        if docname != None:
+            doc = frappe.get_doc("Doc History Temp", docname)
+            doc.is_open = False
+            doc.new_json_blob = doc_dict
+            doc.save()
 
 
 def sort_temp_entries():
