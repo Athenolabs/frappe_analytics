@@ -11,7 +11,10 @@ from .doctype_template import get_change_doctype_json
 
 def dump_doc(doc, method):
     if module_is_versionable(doc):
-        doc_dict = frappe.get_doc(doc.doctype, doc.name).as_json()
+        if hasattr(doc, "__islocal"):
+            doc_dict = ""
+        else:
+            doc_dict = frappe.get_doc(doc.doctype, doc.name).as_json()
         storage_doc = {
             "doctype": "Doc History Temp",
             "changed_name": doc.name,
