@@ -1,74 +1,82 @@
 from random import *
 import frappe
-from frappe.client import get_list
 from frappe.core.doctype.doctype.doctype import DocType
 from frappe.desk.form.meta import get_meta
 from frappe.model.document import Document
-import ast
 import datetime
 import json
 
 from .doctype_template import get_change_doctype_json
 
 
-# IMPORTANT: THIS METHOD IS HOOOKED INTO
-def sort_temp_entries(doc, method):
-    changed_fields = get_list("Doc History Temp", limit_page_length=None)
-    for name in changed_fields:
+def dump_doc(doc, method):
+    if module_is_versionable(doc):
+        doc_dict = frappe.get_doc(doc.doctype, doc.name).as_json()
+        storage_doc = {
+            "doctype": "Doc History Temp",
+            "changed_name": doc.name,
+            "is_open": True,
+            "old_json_blob": doc_dict
+        }
+        frappe.client.insert(storage_doc)
+
+
+def add_updated_doc(doc, method):
+    if module_is_versionable(doc):
+        doc_dict = doc.as_json()
+        filters = json.dumps({"changed_name": doc.name, "is_open": "1"})
+        docname = frappe.client.get_value(
+            "Doc History Temp",
+            "name",
+            as_dict = False,
+            filters = filters)
+        doc = frappe.get_doc("Doc History Temp", docname)
+        doc.is_open = False
+        doc.new_json_blob = doc_dict
+        doc.save()
+
+
+def sort_temp_entries():
+    doc_history_list = frappe.get_list(
+        "Doc History Temp",
+        filters = json.dumps({
+            "is_open": "0",
+            }),
+        limit_page_length = None
+        )
+    for name in doc_history_list:
         doc = frappe.get_doc("Doc History Temp", name['name'])
-        old_dict = json.loads(doc.json_blob)
-        if (len(frappe.client.get_list(
-            old_dict['doctype'], filters={'name': old_dict['name']}
-            )) > 0):
-            new_dict = frappe.client.get(old_dict['doctype'], old_dict['name'])
-        else:
-            new_dict = None
+        old_dict = json.loads(doc.old_json_blob)
+        new_dict = json.loads(doc.new_json_blob)
         log_field_changes(old_dict, new_dict)
         doc.delete()
 
 
 def clean_history():
-    doctypes = frappe.client.get_list("DocType", limit_page_length=None)
-    for doctype in doctypes:
-        if "Field History" not in doctype['name']:
-            docnames = get_doc_names(doctype['name'])
-            for entry in docnames:
+    doctype_list = frappe.get_list("DocType", limit_page_length=None)
+    for doctype in doctype_list:
+        if "Field History" in doctype['name']:
+            changed_doctype = doctype['name'].replace(" Field History", "")
+            changed_doc_names = frappe.db.sql("""
+                SELECT `changed_doc_name` FROM `tab{0}`
+                GROUP BY `changed_doc_name`
+                """.format(doctype['name']))
+            for name in changed_doc_names:
                 try:
-                    frappe.client.get(doctype['name'], entry['changed_doc_name'])
+                    frappe.get_doc(changed_doctype, name[0])
                 except:
-                    try:
-                        frappe.client.delete(
-                            (doctype['name'] + " Field History"),
-                            entry['name']
-                            )
-                    except:
-                        pass
+                    delete_history(changed_doctype, name[0])
 
 
-def get_doc_names(docname):
-    try:
-        return frappe.db.sql("""
-            select `name`, `changed_doc_name` from `tab{0} Field History`
-            group by `changed_doc_name`
-        """.format(docname), as_dict=True)
-    except:
-        return []
+def delete_history_event(doc, method):
+    delete_history(doc.doctype, doc.name)
 
 
-def dump_pre_save_doc(doc, method):
-# deciding to dump json strung here after a date hook to avoid having to use
-# ast later down the line
-    if module_is_versionable(doc):
-        doc_dict = date_hook(doc.as_dict())
-        try:
-            doc_dict = json.dumps(doc_dict)
-        except:
-            frappe.throw(doc_dict)
-        storage_doc = {
-            "doctype": "Doc History Temp",
-            "json_blob": doc_dict
-        }
-        history_doc = frappe.client.insert(storage_doc)
+def delete_history(doctype, docname):
+    frappe.db.sql("""
+        DELETE FROM `tab{0} Field History`
+        WHERE `changed_doc_name` = "{1}"
+        """.format(doctype, docname))
 
 
 def module_is_versionable(doc):
@@ -78,10 +86,10 @@ def module_is_versionable(doc):
             frappe.model.document.get_doc(
                 "Document Versioning Settings", "Document Versioning Settings"
             ).as_dict()['stored_modules'])
+        versionable = settings[module]
     except:
-        settings = {}
-        settings[module] = False
-    return settings[module]
+        versionable = False
+    return versionable
 
 
 def log_field_changes(new_dict, old_dict):

@@ -72,22 +72,26 @@ app_include_js = ["/assets/js/analytics.js"]
 
 doc_events = {
     "*": {
-        "before_save": "analytics.analytics.common_methods.dump_pre_save_doc",
-        "before_submit": "analytics.analytics.common_methods.dump_pre_save_doc",
-        "before_update_after_submit": "analytics.analytics.common_methods.dump_pre_save_doc",
+        "before_save": "analytics.analytics.common_methods.dump_doc",
+        "before_submit": "analytics.analytics.common_methods.dump_doc",
+        "before_update_after_submit": "analytics.analytics.common_methods.dump_doc",
+        "on_update": "analytics.analytics.common_methods.add_updated_doc",
+        "on_submit": "analytics.analytics.common_methods.add_updated_doc",
+        "on_update_after_submit": "analytics.analytics.common_methods.add_updated_doc",
+        "on_trash": "analytics.analytics.common_methods.delete_history_event"
     },
-    "Doc History Temp": {
-        "after_insert": "analytics.analytics.common_methods.sort_temp_entries"
-    }
+#    "Doc History Temp": {
+#        "after_insert": "analytics.analytics.common_methods.sort_temp_entries"
+#    }
 }
 
 # Scheduled Tasks
 # ---------------
 
 scheduler_events = {
-# 	"all": [
-# 		"analytics.analytics.common_methods.sort_temp_entries"
-# 	],
+ 	"all": [
+ 		"analytics.analytics.common_methods.sort_temp_entries"
+ 	],
 # 	"daily": [
  #		"analytics.analytics.common_methods.clean_history"
 #        ]
