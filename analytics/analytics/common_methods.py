@@ -77,10 +77,16 @@ def delete_history_event(doc, method):
 
 
 def delete_history(doctype, docname):
-    frappe.db.sql("""
-        DELETE FROM `tab{0} Field History`
-        WHERE `changed_doc_name` = "{1}"
-        """.format(doctype, docname))
+    try:
+        frappe.db.sql("""
+            DELETE FROM `tab{0} Field History`
+            WHERE `changed_doc_name` = "{1}"
+            """.format(doctype, docname))
+    except Exception, e:
+        if e.args[0] == 1146:
+            pass
+        else:
+            raise e
 
 
 def module_is_versionable(doc):

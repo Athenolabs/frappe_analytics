@@ -15,7 +15,8 @@ class DocumentVersioningSettings(Document):
 
 @frappe.whitelist()
 def get_modules():
-	modules = frappe.client.get_list("Module Def", limit_page_length=None)
+	modules = frappe.client.get_list("Module Def", limit_page_length=None,
+									 filters={"name": ["!=", "Analytics"]})
 	settings_doc = frappe.client.get("Document Versioning Settings")
 	if settings_doc['stored_modules']:
 		settings = json.loads(settings_doc['stored_modules'])
