@@ -7,7 +7,7 @@
  "custom": 0, 
  "docstatus": 0, 
  "doctype": "DocType", 
- "document_type": "System", 
+ "document_type": "Other", 
  "fields": [
   {
    "allow_on_submit": 0, 
@@ -120,7 +120,7 @@
  "issingle": 0, 
  "istable": 0, 
  "max_attachments": 0, 
- "modified": "2016-06-24 09:57:52.911879", 
+ "modified": "2016-07-14 09:49:19.755630", 
  "modified_by": "Administrator", 
  "module": "Analytics", 
  "name": "Doc History Temp", 

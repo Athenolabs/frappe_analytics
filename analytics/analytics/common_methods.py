@@ -50,10 +50,18 @@ def sort_temp_entries():
         )
     for name in doc_history_list:
         doc = frappe.get_doc("Doc History Temp", name['name'])
-        old_dict = json.loads(doc.old_json_blob)
-        new_dict = json.loads(doc.new_json_blob)
-        log_field_changes(old_dict, new_dict)
-        doc.delete()
+
+	if doc.old_json_blob:
+	    old_dict = json.loads(doc.old_json_blob)
+        else:
+	    old_dict = None
+	
+	if doc.new_json_blob:
+            new_dict = json.loads(doc.new_json_blob)
+ 	else:
+	    break
+	log_field_changes(new_dict, old_dict)
+       	doc.delete()
 
 
 def clean_history():
