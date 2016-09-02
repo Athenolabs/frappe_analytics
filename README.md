@@ -24,9 +24,11 @@ Some potential reports:
 
 In the `frappe-bench` folder (or whatever you named it during installation), run:
 
-`bench get-app analytics https://github.com/aruizramon/frappe_analytics`
-`bench install-app analytics`
-`bench migrate && bench update --build`
+```
+bench get-app analytics https://github.com/aruizramon/frappe_analytics
+bench install-app analytics
+bench migrate && bench update --build
+```
 
 ### Contributing
 
