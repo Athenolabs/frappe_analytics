@@ -20,6 +20,14 @@ Some potential reports:
     10% of Prospects become MQL's, 23% of MQL's become SQL's, etc.
 
 
+### Installation
+
+In the `frappe-bench` folder (or whatever you named it during installation), run:
+
+`bench get-app analytics https://github.com/aruizramon/frappe_analytics`
+`bench install-app analytics`
+`bench migrate && bench update --build`
+
 ### Contributing
 
 If you have a report you'd like to have, or a better method for the backend,
